@@ -80,45 +80,70 @@ async function getTopHoldersStandard(tokenAddress, limit) {
 // 获取早期买家
 export async function getEarlyBuyers(tokenAddress, limit = 100) {
   try {
-    const mintPubkey = new PublicKey(tokenAddress);
+    // 使用 Helius Enhanced Transactions API
+    const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=56e3b257-db11-4639-a5a2-4f09a9199f9f`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'get-txs',
+        method: 'getSignaturesForAddress',
+        params: [
+          tokenAddress,
+          { limit: 1000 }
+        ]
+      })
+    });
     
-    // 获取代币账户的交易签名
-    const signatures = await connection.getSignaturesForAddress(
-      mintPubkey,
-      { limit: 1000 }
-    );
+    const data = await response.json();
     
+    if (!data.result || data.result.length === 0) {
+      throw new Error('无法获取交易历史');
+    }
+    
+    const signatures = data.result;
     const buyers = new Map();
     
-    // 并发解析交易
-    const batchSize = 50;
-    for (let i = 0; i < signatures.length && buyers.size < limit; i += batchSize) {
-      const batch = signatures.slice(i, i + batchSize);
-      const txs = await Promise.all(
-        batch.map(sig => 
-          connection.getParsedTransaction(sig.signature, {
-            maxSupportedTransactionVersion: 0
-          })
-        )
-      );
+    // 分批处理交易
+    const batchSize = 20;
+    for (let i = signatures.length - 1; i >= 0 && buyers.size < limit; i -= batchSize) {
+      const batch = signatures.slice(Math.max(0, i - batchSize + 1), i + 1);
       
-      for (const tx of txs) {
-        if (!tx || buyers.size >= limit) break;
+      const txResponse = await fetch(`https://mainnet.helius-rpc.com/?api-key=56e3b257-db11-4639-a5a2-4f09a9199f9f`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          batch.map((sig, idx) => ({
+            jsonrpc: '2.0',
+            id: idx,
+            method: 'getTransaction',
+            params: [
+              sig.signature,
+              { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }
+            ]
+          }))
+        )
+      });
+      
+      const txData = await txResponse.json();
+      const transactions = Array.isArray(txData) ? txData : [txData];
+      
+      for (const txResult of transactions) {
+        if (!txResult.result || buyers.size >= limit) continue;
         
-        // 查找 token transfer 指令
-        const instructions = tx.transaction.message.instructions;
-        for (const ix of instructions) {
-          if (ix.program === 'spl-token' && ix.parsed?.type === 'transfer') {
-            const destination = ix.parsed.info.destination;
-            const destinationOwner = await getTokenAccountOwner(destination);
-            
-            if (destinationOwner && !buyers.has(destinationOwner)) {
-              buyers.set(destinationOwner, {
-                address: destinationOwner,
-                timestamp: tx.blockTime,
-                signature: tx.transaction.signatures[0]
-              });
-            }
+        const tx = txResult.result;
+        const accountKeys = tx.transaction?.message?.accountKeys || [];
+        
+        // 查找交易发起者 (第一个签名者)
+        if (accountKeys.length > 0) {
+          const signer = accountKeys[0].pubkey;
+          
+          if (signer && !buyers.has(signer)) {
+            buyers.set(signer, {
+              address: signer,
+              timestamp: tx.blockTime,
+              signature: tx.transaction.signatures[0]
+            });
           }
         }
       }
@@ -127,7 +152,9 @@ export async function getEarlyBuyers(tokenAddress, limit = 100) {
     return Array.from(buyers.values()).slice(0, limit);
   } catch (error) {
     console.error('获取早期买家失败:', error);
-    throw error;
+    // 降级方案: 返回持有者作为买家
+    console.warn('降级到持有者列表');
+    return await getTopHolders(tokenAddress, limit);
   }
 }
 
