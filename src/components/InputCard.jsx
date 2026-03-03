@@ -18,7 +18,7 @@ export function InputCard({ addresses, setAddresses, loading, onAnalyze, onFillE
           value={addresses}
           onChange={(e) => setAddresses(e.target.value)}
           placeholder="每行输入一个代币合约地址&#10;例如:&#10;JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN&#10;So11111111111111111111111111111111111111112"
-          className="w-full h-32 p-4 rounded-lg bg-secondary border border-input focus:border-ring focus:outline-none text-foreground placeholder-muted-foreground font-mono text-sm resize-none transition-colors"
+          className="w-full h-40 p-4 rounded-lg bg-secondary border border-input focus:border-ring focus:outline-none text-foreground placeholder-muted-foreground font-mono text-sm resize-none transition-colors"
           disabled={loading}
         />
         <Button
