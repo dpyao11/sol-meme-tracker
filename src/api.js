@@ -7,25 +7,74 @@ const connection = new Connection(HELIUS_RPC, 'confirmed');
 export async function getTopHolders(tokenAddress, limit = 200) {
   try {
     const mintPubkey = new PublicKey(tokenAddress);
-    const accounts = await connection.getTokenLargestAccounts(mintPubkey);
     
-    const holders = await Promise.all(
-      accounts.value.slice(0, limit).map(async (account) => {
-        const accountInfo = await connection.getParsedAccountInfo(account.address);
-        const owner = accountInfo.value?.data?.parsed?.info?.owner;
-        return {
-          address: owner,
-          balance: account.amount,
-          uiAmount: account.uiAmount
-        };
+    // 使用 Helius DAS API 获取所有持有者
+    const response = await fetch(`https://mainnet.helius-rpc.com/?api-key=56e3b257-db11-4639-a5a2-4f09a9199f9f`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 'get-holders',
+        method: 'getTokenAccounts',
+        params: {
+          mint: tokenAddress,
+          limit: limit,
+          page: 1
+        }
       })
-    );
+    });
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      // 降级到标准 RPC
+      console.warn('Helius API 失败,使用标准 RPC');
+      return await getTopHoldersStandard(tokenAddress, limit);
+    }
+    
+    const holders = (data.result?.token_accounts || []).map(account => ({
+      address: account.owner,
+      balance: account.amount,
+      uiAmount: parseFloat(account.amount) / Math.pow(10, account.decimals || 9)
+    }));
     
     return holders.filter(h => h.address);
   } catch (error) {
-    console.error('获取持有者失败:', error);
-    throw error;
+    console.error('获取持有者失败,尝试标准方法:', error);
+    return await getTopHoldersStandard(tokenAddress, limit);
   }
+}
+
+// 标准 RPC 方法 (降级方案)
+async function getTopHoldersStandard(tokenAddress, limit) {
+  const mintPubkey = new PublicKey(tokenAddress);
+  const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+  
+  const accounts = await connection.getProgramAccounts(
+    TOKEN_PROGRAM_ID,
+    {
+      filters: [
+        { dataSize: 165 },
+        { memcmp: { offset: 0, bytes: mintPubkey.toBase58() } }
+      ]
+    }
+  );
+  
+  const holders = accounts
+    .map(account => {
+      const data = account.account.data;
+      const owner = new PublicKey(data.slice(32, 64)).toBase58();
+      const amount = data.readBigUInt64LE(64);
+      return {
+        address: owner,
+        balance: amount.toString(),
+        uiAmount: Number(amount) / 1e9
+      };
+    })
+    .sort((a, b) => b.uiAmount - a.uiAmount)
+    .slice(0, limit);
+  
+  return holders;
 }
 
 // 获取早期买家
