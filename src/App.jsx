@@ -69,119 +69,128 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
-          <h1 className="text-lg font-semibold tracking-tight">SOL Tracker</h1>
+    <div className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="pointer-events-none fixed inset-0 opacity-80">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(56,189,248,0.18),transparent_38%),radial-gradient(circle_at_85%_18%,rgba(34,197,94,0.16),transparent_34%),radial-gradient(circle_at_55%_92%,rgba(99,102,241,0.2),transparent_44%)]" />
+      </div>
 
-          <div className="rounded-full border border-slate-200 bg-slate-50 p-1">
-            <button
-              onClick={() => setMode('holders')}
-              className={`rounded-full px-4 py-1.5 text-sm transition ${
-                mode === 'holders'
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              持有者
-            </button>
-            <button
-              onClick={() => setMode('buyers')}
-              className={`rounded-full px-4 py-1.5 text-sm transition ${
-                mode === 'buyers'
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              买家
-            </button>
+      <header className="sticky top-0 z-20 border-b border-slate-800/70 bg-slate-950/90 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs tracking-[0.22em] text-sky-300/80">SOL MEME TRACKER</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">共同地址分析仪表盘</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="rounded-full border border-slate-700 bg-slate-900/80 p-1">
+              <button
+                onClick={() => setMode('holders')}
+                className={`rounded-full px-4 py-1.5 text-sm transition ${
+                  mode === 'holders' ? 'bg-sky-500 text-slate-950' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                持有者模式
+              </button>
+              <button
+                onClick={() => setMode('buyers')}
+                className={`rounded-full px-4 py-1.5 text-sm transition ${
+                  mode === 'buyers' ? 'bg-emerald-400 text-slate-950' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                买家模式
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
-        {!results ? (
-          <section className="mx-auto max-w-3xl">
-            <div className="mb-4 text-center">
-              <h2 className="text-2xl font-semibold tracking-tight">输入代币地址并开始分析</h2>
-              <p className="mt-2 text-sm text-slate-500">每行一个地址，至少输入两个</p>
-              <div className="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
-                当前模式：{mode === 'holders' ? '共同持有者（Top 200）' : '共同早期买家（Top 100）'}
-              </div>
+      <main className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+        <section className="mb-6 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-4 shadow-2xl shadow-slate-950/60 sm:p-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold">输入代币地址并发起分析</h2>
+              <p className="mt-1 text-sm text-slate-400">每行一个地址，至少输入 2 个</p>
             </div>
+            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-3 py-1 text-xs text-slate-300">
+              当前模式：{mode === 'holders' ? '共同持有者（Top 200）' : '共同早期买家（Top 100）'}
+            </span>
+          </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-              <textarea
-                value={addresses}
-                onChange={(e) => setAddresses(e.target.value)}
-                placeholder="请输入代币地址（每行一个）"
-                className="h-72 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-slate-400"
-                disabled={loading}
-              />
+          <textarea
+            value={addresses}
+            onChange={(e) => setAddresses(e.target.value)}
+            placeholder="请输入代币地址（每行一个）"
+            className="h-56 w-full resize-none rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 font-mono text-sm text-slate-100 outline-none transition focus:border-sky-500 disabled:opacity-70"
+            disabled={loading}
+          />
 
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || !addresses.trim()}
-                className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {loading ? '分析中...' : '开始分析'}
-              </button>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || !addresses.trim()}
+              className="w-full rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
+            >
+              {loading ? '分析中...' : '开始分析'}
+            </button>
 
-              {loading && (
-                <div className="mt-3">
-                  <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
-                    <span>进度</span>
-                    <span>{Math.round(progress)}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100">
-                    <div
-                      className="h-2 rounded-full bg-slate-900 transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
-                  {error}
-                </div>
-              )}
-            </div>
-          </section>
-        ) : (
-          <section className="mx-auto max-w-5xl">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight">分析结果</h2>
-                <p className="mt-1 text-xs text-slate-500">当前模式：{mode === 'holders' ? '共同持有者（Top 200）' : '共同早期买家（Top 100）'}</p>
-              </div>
+            {results && (
               <button
                 onClick={() => setResults(null)}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
+                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-200 transition hover:border-slate-500 sm:w-auto"
               >
-                返回
+                清空结果
               </button>
-            </div>
+            )}
+          </div>
 
-            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500">代币数</div>
-                <div className="mt-1 text-2xl font-semibold">{results.tokenCount}</div>
+          {loading && (
+            <div className="mt-4 rounded-xl border border-sky-500/30 bg-sky-500/10 p-3">
+              <div className="mb-2 flex items-center justify-between text-xs text-sky-200">
+                <span>Loading · 正在拉取并计算地址</span>
+                <span>{Math.round(progress)}%</span>
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500">共同地址</div>
-                <div className="mt-1 text-2xl font-semibold">{results.commonCount}</div>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="text-sm text-slate-500">重叠率</div>
-                <div className="mt-1 text-2xl font-semibold">{results.percentage}%</div>
+              <div className="h-2 rounded-full bg-slate-800">
+                <div className="h-2 rounded-full bg-sky-400 transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
+          )}
 
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium">
-                地址列表（{results.commonAddresses.length}）
+          {error && (
+            <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              Error · {error}
+            </div>
+          )}
+        </section>
+
+        {!results && !loading && !error && (
+          <section className="rounded-2xl border border-slate-800/80 bg-slate-900/60 px-6 py-10 text-center">
+            <p className="text-sm uppercase tracking-[0.16em] text-slate-500">Empty State</p>
+            <h3 className="mt-2 text-xl font-semibold">等待分析结果</h3>
+            <p className="mt-2 text-sm text-slate-400">输入多个代币地址后点击“开始分析”，这里会展示统计和共同地址列表。</p>
+          </section>
+        )}
+
+        {results && (
+          <section className="space-y-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">代币数量</p>
+                <p className="mt-2 text-3xl font-semibold text-sky-300">{results.tokenCount}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">共同地址</p>
+                <p className="mt-2 text-3xl font-semibold text-emerald-300">{results.commonCount}</p>
+              </div>
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">重叠率</p>
+                <p className="mt-2 text-3xl font-semibold text-indigo-300">{results.percentage}%</p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/80">
+              <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3 text-sm">
+                <span className="font-medium text-slate-200">地址列表（{results.commonAddresses.length}）</span>
+                <span className="text-xs text-slate-400">支持复制与 Solscan 外链</span>
               </div>
 
               {results.commonAddresses.length > 0 ? (
@@ -189,13 +198,13 @@ function App() {
                   {results.commonAddresses.map((addr, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                      className="flex items-center gap-3 border-b border-slate-800/70 px-4 py-3 last:border-b-0"
                     >
-                      <div className="w-9 text-sm text-slate-400">{idx + 1}</div>
-                      <div className="min-w-0 flex-1 truncate font-mono text-sm text-slate-800">{addr}</div>
+                      <div className="w-10 text-sm text-slate-500">#{idx + 1}</div>
+                      <div className="min-w-0 flex-1 truncate font-mono text-sm text-slate-200">{addr}</div>
                       <button
                         onClick={() => copyToClipboard(addr, idx)}
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:border-slate-500"
                       >
                         {copied === idx ? '已复制' : '复制'}
                       </button>
@@ -203,7 +212,7 @@ function App() {
                         href={`https://solscan.io/account/${addr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-md border border-slate-700 px-2.5 py-1 text-xs text-slate-200 transition hover:border-slate-500"
                       >
                         外链
                       </a>
@@ -211,7 +220,7 @@ function App() {
                   ))}
                 </div>
               ) : (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">没有找到共同地址</div>
+                <div className="px-4 py-12 text-center text-sm text-slate-400">Empty · 没有找到共同地址</div>
               )}
             </div>
           </section>
