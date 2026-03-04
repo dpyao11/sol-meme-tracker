@@ -105,6 +105,9 @@ function App() {
             <div className="mb-4 text-center">
               <h2 className="text-2xl font-semibold tracking-tight">输入代币地址并开始分析</h2>
               <p className="mt-2 text-sm text-slate-500">每行一个地址，至少输入两个</p>
+              <div className="mt-3 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
+                当前模式：{mode === 'holders' ? '共同持有者（Top 200）' : '共同早期买家（Top 100）'}
+              </div>
             </div>
 
             <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -149,7 +152,10 @@ function App() {
         ) : (
           <section className="mx-auto max-w-5xl">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold tracking-tight">分析结果</h2>
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight">分析结果</h2>
+                <p className="mt-1 text-xs text-slate-500">当前模式：{mode === 'holders' ? '共同持有者（Top 200）' : '共同早期买家（Top 100）'}</p>
+              </div>
               <button
                 onClick={() => setResults(null)}
                 className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
