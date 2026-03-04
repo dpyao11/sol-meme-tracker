@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getTopHolders, getEarlyBuyers, findCommonAddresses } from './api';
-import { Search, Copy, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, Copy, ExternalLink, Loader2, ArrowLeft } from 'lucide-react';
 
 function App() {
   const [mode, setMode] = useState('holders');
@@ -31,14 +31,12 @@ function App() {
 
       for (let i = 0; i < tokenAddresses.length; i++) {
         setProgress(((i + 1) / totalSteps) * 100);
-
         let data;
         if (mode === 'holders') {
           data = await getTopHolders(tokenAddresses[i], 200);
         } else {
           data = await getEarlyBuyers(tokenAddresses[i], 100);
         }
-
         allData.push(data);
       }
 
@@ -64,156 +62,157 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-b border-gray-100 z-10">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Search className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-semibold text-gray-900">SOL Tracker</span>
+      {/* Simple Header */}
+      <header className="absolute top-0 left-0 right-0 px-8 py-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
+            <Search className="w-5 h-5 text-white" />
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setMode('holders')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'holders'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              持有者
-            </button>
-            <button
-              onClick={() => setMode('buyers')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'buyers'
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              买家
-            </button>
-          </div>
+          <span className="text-xl font-semibold text-gray-900">SOL Tracker</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setMode('holders')}
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              mode === 'holders'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            持有者
+          </button>
+          <button
+            onClick={() => setMode('buyers')}
+            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              mode === 'buyers'
+                ? 'bg-blue-600 text-white'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            买家
+          </button>
         </div>
       </header>
 
-      {/* Main */}
-      <main className="pt-16">
-        {!results ? (
-          // Input View
-          <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-6">
-            <div className="w-full max-w-3xl">
-              <div className="text-center mb-12">
-                <h1 className="text-5xl font-bold text-gray-900 mb-4">
-                  找出共同持有者
-                </h1>
-                <p className="text-lg text-gray-500">
-                  输入多个 Solana 代币地址，分析共同持有的钱包
-                </p>
-              </div>
-
-              <div className="relative">
-                <textarea
-                  value={addresses}
-                  onChange={(e) => setAddresses(e.target.value)}
-                  placeholder="输入代币地址，每行一个"
-                  className="w-full h-48 px-6 py-4 text-base bg-white border-2 border-gray-200 rounded-3xl focus:border-blue-500 focus:outline-none resize-none transition-colors"
-                  disabled={loading}
-                />
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading || !addresses.trim()}
-                  className="absolute bottom-4 right-4 px-8 py-3 bg-blue-600 text-white rounded-2xl font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      分析中 {Math.round(progress)}%
-                    </>
-                  ) : (
-                    '开始分析'
-                  )}
-                </button>
-              </div>
-
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
+      {!results ? (
+        // Input View - 完全居中
+        <div className="min-h-screen flex items-center justify-center px-8">
+          <div className="w-full max-w-4xl">
+            <div className="text-center mb-16">
+              <h1 className="text-6xl font-bold text-gray-900 mb-6">
+                找出共同持有者
+              </h1>
+              <p className="text-xl text-gray-500">
+                输入多个 Solana 代币地址，分析共同持有的钱包
+              </p>
             </div>
+
+            <div className="relative">
+              <textarea
+                value={addresses}
+                onChange={(e) => setAddresses(e.target.value)}
+                placeholder="输入代币地址，每行一个"
+                className="w-full h-64 px-8 py-6 text-lg bg-white border border-gray-200 rounded-[32px] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-50 resize-none transition-all shadow-sm hover:shadow-md"
+                disabled={loading}
+              />
+              <button
+                onClick={handleAnalyze}
+                disabled={loading || !addresses.trim()}
+                className="absolute bottom-6 right-6 px-10 py-4 bg-blue-600 text-white rounded-[24px] font-semibold text-base hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center gap-3"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    分析中 {Math.round(progress)}%
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-5 h-5" />
+                    开始分析
+                  </>
+                )}
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-6 p-5 bg-red-50 border border-red-200 rounded-[24px]">
+                <p className="text-red-600">{error}</p>
+              </div>
+            )}
           </div>
-        ) : (
-          // Results View
-          <div className="max-w-5xl mx-auto px-6 py-12">
-            <div className="flex items-center justify-between mb-8">
+        </div>
+      ) : (
+        // Results View
+        <div className="min-h-screen pt-24 px-8 pb-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center justify-between mb-10">
               <button
                 onClick={() => setResults(null)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
+                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-lg"
               >
-                ← 返回
+                <ArrowLeft className="w-5 h-5" />
+                返回
               </button>
-              <div className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-8 text-base">
                 <div>
-                  <span className="text-gray-500">代币数:</span>
-                  <span className="ml-2 font-semibold text-gray-900">{results.tokenCount}</span>
+                  <span className="text-gray-500">代币数</span>
+                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.tokenCount}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">共同地址:</span>
-                  <span className="ml-2 font-semibold text-gray-900">{results.commonCount}</span>
+                  <span className="text-gray-500">共同地址</span>
+                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.commonCount}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">重叠率:</span>
-                  <span className="ml-2 font-semibold text-gray-900">{results.percentage}%</span>
+                  <span className="text-gray-500">重叠率</span>
+                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.percentage}%</span>
                 </div>
               </div>
             </div>
 
             {results.commonAddresses.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {results.commonAddresses.map((addr, idx) => (
                   <div
                     key={idx}
-                    className="group flex items-center justify-between p-4 bg-white hover:bg-gray-50 border border-gray-200 rounded-2xl transition-colors"
+                    className="group flex items-center justify-between px-6 py-5 bg-white hover:bg-gray-50 border border-gray-200 rounded-[24px] transition-all"
                   >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <span className="text-sm text-gray-400 font-medium w-8">
+                    <div className="flex items-center gap-5 flex-1 min-w-0">
+                      <span className="text-base text-gray-400 font-semibold w-10">
                         {idx + 1}
                       </span>
-                      <code className="text-sm text-gray-900 font-mono truncate">
+                      <code className="text-base text-gray-900 font-mono truncate">
                         {addr}
                       </code>
                     </div>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => copyToClipboard(addr)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
                         title="复制"
                       >
-                        <Copy className="w-4 h-4 text-gray-600" />
+                        <Copy className="w-5 h-5 text-gray-600" />
                       </button>
                       <a
                         href={`https://solscan.io/account/${addr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
                         title="查看"
                       >
-                        <ExternalLink className="w-4 h-4 text-gray-600" />
+                        <ExternalLink className="w-5 h-5 text-gray-600" />
                       </a>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20">
-                <p className="text-gray-500 text-lg">没有找到共同地址</p>
+              <div className="text-center py-32">
+                <p className="text-gray-400 text-2xl">没有找到共同地址</p>
               </div>
             )}
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }
