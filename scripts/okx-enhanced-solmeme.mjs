@@ -48,17 +48,54 @@ async function okxPost(path, bodyObj) {
 
 async function getTopHolders(mintAddress, limit = 200) {
   const mintPubkey = new PublicKey(mintAddress);
-  const tokenAccounts = await connection.getTokenLargestAccounts(mintPubkey);
+  const TOKEN_PROGRAM_IDS = [
+    new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
+    new PublicKey('TokenzQdB8uS5f8zQhB64fxYz6n1vCtbmZh9rqxQf2S'), // Token-2022
+  ];
 
-  const holders = await Promise.all(
-    tokenAccounts.value.slice(0, Math.min(limit, tokenAccounts.value.length)).map(async (account) => {
-      const accountInfo = await connection.getParsedAccountInfo(account.address);
-      const owner = accountInfo.value?.data?.parsed?.info?.owner;
-      return owner ? { address: owner, uiAmount: account.uiAmount || 0 } : null;
-    })
+  const accountGroups = await Promise.all(
+    TOKEN_PROGRAM_IDS.map((programId) =>
+      connection.getProgramAccounts(programId, {
+        filters: [
+          { dataSize: 165 },
+          { memcmp: { offset: 0, bytes: mintPubkey.toBase58() } },
+        ],
+      }).catch(() => [])
+    )
   );
 
-  return holders.filter(Boolean);
+  const accounts = accountGroups.flat();
+  const ownerBalances = new Map();
+
+  for (const account of accounts) {
+    const data = account.account.data;
+    const owner = new PublicKey(data.slice(32, 64)).toBase58();
+    const amount = Number(data.readBigUInt64LE(64));
+    if (amount <= 0) continue;
+    ownerBalances.set(owner, (ownerBalances.get(owner) || 0) + amount);
+  }
+
+  let holders = [...ownerBalances.entries()]
+    .map(([address, amount]) => ({
+      address,
+      uiAmount: amount,
+    }))
+    .sort((a, b) => b.uiAmount - a.uiAmount)
+    .slice(0, limit);
+
+  if (holders.length === 0) {
+    const largest = await connection.getTokenLargestAccounts(mintPubkey);
+    const resolved = await Promise.all(
+      largest.value.slice(0, Math.min(limit, largest.value.length)).map(async (item) => {
+        const info = await connection.getParsedAccountInfo(item.address).catch(() => null);
+        const owner = info?.value?.data?.parsed?.info?.owner;
+        return owner ? { address: owner, uiAmount: item.uiAmount || 0 } : null;
+      })
+    );
+    holders = resolved.filter(Boolean);
+  }
+
+  return holders;
 }
 
 function intersectWallets(walletLists) {
