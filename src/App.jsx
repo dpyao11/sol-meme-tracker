@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getTopHolders, getEarlyBuyers, findCommonAddresses } from './api';
-import { Search, Copy, ExternalLink, Loader2, ArrowLeft } from 'lucide-react';
 
 function App() {
   const [mode, setMode] = useState('holders');
@@ -9,6 +8,13 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
+  const [time, setTime] = useState(new Date());
+  const [copied, setCopied] = useState(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -23,7 +29,7 @@ function App() {
         .filter(addr => addr.length > 0);
 
       if (tokenAddresses.length < 2) {
-        throw new Error('请至少输入2个代币地址');
+        throw new Error('ERROR: MINIMUM 2 ADDRESSES REQUIRED');
       }
 
       const allData = [];
@@ -49,170 +55,198 @@ function App() {
         percentage: ((common.length / (allData[0]?.length || 1)) * 100).toFixed(1)
       });
     } catch (err) {
-      setError(err.message || '分析失败');
+      setError(err.message || 'SYSTEM ERROR');
     } finally {
       setLoading(false);
       setProgress(0);
     }
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, idx) => {
     navigator.clipboard.writeText(text);
+    setCopied(idx);
+    setTimeout(() => setCopied(null), 1000);
+  };
+
+  const formatTime = (date) => {
+    return date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Simple Header */}
-      <header className="absolute top-0 left-0 right-0 px-8 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center">
-            <Search className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-semibold text-gray-900">SOL Tracker</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setMode('holders')}
-            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              mode === 'holders'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            持有者
-          </button>
-          <button
-            onClick={() => setMode('buyers')}
-            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              mode === 'buyers'
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-600 hover:bg-gray-100'
-            }`}
-          >
-            买家
-          </button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0D0D0D] text-[#00FF41] font-mono p-4 relative overflow-hidden">
+      {/* Scanline effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-10">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00FF41] to-transparent animate-scan"></div>
+      </div>
 
-      {!results ? (
-        // Input View - 完全居中
-        <div className="min-h-screen flex items-center justify-center px-8">
-          <div className="w-full max-w-4xl">
-            <div className="text-center mb-16">
-              <h1 className="text-6xl font-bold text-gray-900 mb-6">
-                找出共同持有者
-              </h1>
-              <p className="text-xl text-gray-500">
-                输入多个 Solana 代币地址，分析共同持有的钱包
-              </p>
+      {/* CRT glow */}
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(0,255,65,0.1)_0%,transparent_70%)]"></div>
+
+      <div className="max-w-5xl mx-auto relative z-10">
+        {/* Header */}
+        <div className="border border-[#1A1A1A] p-4 mb-4 bg-black/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="text-xl font-bold tracking-wider">[SOL_TRACKER]</div>
+              <div className="text-xs text-[#666666]">{formatTime(time)}</div>
             </div>
-
-            <div className="relative">
-              <textarea
-                value={addresses}
-                onChange={(e) => setAddresses(e.target.value)}
-                placeholder="输入代币地址，每行一个"
-                className="w-full h-64 px-8 py-6 text-lg bg-white border border-gray-200 rounded-[32px] focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-50 resize-none transition-all shadow-sm hover:shadow-md"
-                disabled={loading}
-              />
+            <div className="flex gap-2">
               <button
-                onClick={handleAnalyze}
-                disabled={loading || !addresses.trim()}
-                className="absolute bottom-6 right-6 px-10 py-4 bg-blue-600 text-white rounded-[24px] font-semibold text-base hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl flex items-center gap-3"
+                onClick={() => setMode('holders')}
+                className={`px-4 py-1 border transition-all ${
+                  mode === 'holders'
+                    ? 'border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41]'
+                    : 'border-[#1A1A1A] text-[#666666] hover:border-[#00FF41] hover:text-[#00FF41]'
+                }`}
               >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    分析中 {Math.round(progress)}%
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-5 h-5" />
-                    开始分析
-                  </>
-                )}
+                [HOLDERS]
+              </button>
+              <button
+                onClick={() => setMode('buyers')}
+                className={`px-4 py-1 border transition-all ${
+                  mode === 'buyers'
+                    ? 'border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41]'
+                    : 'border-[#1A1A1A] text-[#666666] hover:border-[#00FF41] hover:text-[#00FF41]'
+                }`}
+              >
+                [BUYERS]
               </button>
             </div>
+          </div>
+        </div>
+
+        {!results ? (
+          // Input View
+          <div className="border border-[#1A1A1A] p-8 bg-black/50">
+            <div className="mb-6">
+              <div className="text-sm text-[#666666] mb-2">&gt; INPUT_ADDRESSES</div>
+              <div className="relative">
+                <textarea
+                  value={addresses}
+                  onChange={(e) => setAddresses(e.target.value)}
+                  placeholder="PASTE_TOKEN_ADDRESSES_HERE&#10;ONE_PER_LINE"
+                  className="w-full h-64 bg-black border border-[#1A1A1A] p-4 text-[#00FF41] focus:border-[#00FF41] focus:outline-none focus:shadow-[0_0_10px_rgba(0,255,65,0.3)] resize-none placeholder-[#333333] transition-all"
+                  disabled={loading}
+                />
+                {!loading && addresses && (
+                  <div className="absolute bottom-4 right-4 w-2 h-4 bg-[#00FF41] animate-pulse"></div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || !addresses.trim()}
+              className="w-full py-3 border border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41] hover:bg-[#00FF41]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold tracking-wider"
+            >
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <span>[ANALYZING]</span>
+                  <span className="inline-block w-32 h-2 border border-[#00FF41] relative overflow-hidden">
+                    <div 
+                      className="absolute left-0 top-0 h-full bg-[#00FF41]"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+              ) : (
+                '[ANALYZE >>]'
+              )}
+            </button>
 
             {error && (
-              <div className="mt-6 p-5 bg-red-50 border border-red-200 rounded-[24px]">
-                <p className="text-red-600">{error}</p>
+              <div className="mt-4 border-2 border-[#FF0055] p-4 bg-[#FF0055]/10">
+                <div className="text-[#FF0055] font-bold">&gt;&gt; {error}</div>
               </div>
             )}
           </div>
-        </div>
-      ) : (
-        // Results View
-        <div className="min-h-screen pt-24 px-8 pb-12">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-10">
+        ) : (
+          // Results View
+          <div className="border border-[#1A1A1A] p-8 bg-black/50">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1A1A1A]">
               <button
                 onClick={() => setResults(null)}
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium text-lg"
+                className="text-[#00FF41] hover:text-[#FF0055] transition-colors"
               >
-                <ArrowLeft className="w-5 h-5" />
-                返回
+                [&lt;&lt; BACK]
               </button>
-              <div className="flex items-center gap-8 text-base">
+              <div className="flex gap-6 text-sm">
                 <div>
-                  <span className="text-gray-500">代币数</span>
-                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.tokenCount}</span>
+                  <span className="text-[#666666]">TOKENS:</span>
+                  <span className="ml-2 text-[#00FF41]">{results.tokenCount}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">共同地址</span>
-                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.commonCount}</span>
+                  <span className="text-[#666666]">COMMON:</span>
+                  <span className="ml-2 text-[#00FF41]">{results.commonCount}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500">重叠率</span>
-                  <span className="ml-3 font-bold text-gray-900 text-xl">{results.percentage}%</span>
+                  <span className="text-[#666666]">OVERLAP:</span>
+                  <span className="ml-2 text-[#00FF41]">{results.percentage}%</span>
                 </div>
               </div>
             </div>
 
+            <div className="text-sm text-[#666666] mb-2">&gt; RESULTS:</div>
+
             {results.commonAddresses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {results.commonAddresses.map((addr, idx) => (
                   <div
                     key={idx}
-                    className="group flex items-center justify-between px-6 py-5 bg-white hover:bg-gray-50 border border-gray-200 rounded-[24px] transition-all"
+                    className="group flex items-center justify-between p-3 border border-[#1A1A1A] hover:border-[#00FF41] hover:bg-[#00FF41]/5 transition-all cursor-pointer"
+                    onClick={() => copyToClipboard(addr, idx)}
                   >
-                    <div className="flex items-center gap-5 flex-1 min-w-0">
-                      <span className="text-base text-gray-400 font-semibold w-10">
-                        {idx + 1}
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <span className="text-[#666666] w-12">
+                        {String(idx + 1).padStart(3, '0')}
                       </span>
-                      <code className="text-base text-gray-900 font-mono truncate">
+                      <span className="text-[#00FF41] truncate">
                         {addr}
-                      </code>
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => copyToClipboard(addr)}
-                        className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
-                        title="复制"
-                      >
-                        <Copy className="w-5 h-5 text-gray-600" />
-                      </button>
+                    <div className="flex items-center gap-2">
+                      {copied === idx && (
+                        <span className="text-[#FF0055] animate-pulse">[COPIED]</span>
+                      )}
                       <a
                         href={`https://solscan.io/account/${addr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
-                        title="查看"
+                        className="text-[#666666] hover:text-[#00FF41] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <ExternalLink className="w-5 h-5 text-gray-600" />
+                        [VIEW]
                       </a>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-32">
-                <p className="text-gray-400 text-2xl">没有找到共同地址</p>
+              <div className="border-2 border-[#FF0055] p-8 text-center">
+                <div className="text-[#FF0055] text-xl">[NO_COMMON_ADDRESSES_FOUND]</div>
               </div>
             )}
           </div>
+        )}
+
+        {/* Footer */}
+        <div className="mt-4 border border-[#1A1A1A] p-2 bg-black/50 flex items-center justify-between text-xs text-[#666666]">
+          <div>SYSTEM_OK</div>
+          <div>POWERED_BY_HELIUS</div>
+          <div>LATENCY: 23ms</div>
         </div>
-      )}
+      </div>
+
+      <style jsx>{`
+        @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100%); }
+        }
+        .animate-scan {
+          animation: scan 8s linear infinite;
+        }
+      `}</style>
     </div>
   );
 }
