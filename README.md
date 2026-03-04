@@ -44,6 +44,25 @@ npm run build
 - @solana/web3.js
 - Helius RPC
 
+## OKX 增强分析（新）
+
+在不改前端业务逻辑的前提下，新增了基于 OKX OnchainOS 的增强分析脚本，可输出：
+- 代币基础信息（symbol/name/communityRecognized）
+- 价格、流动性、市值、24h 变动
+- 与链上 Top 持有者交集结合后的重叠结果
+- 质量评分（qualityScore）和风险提示
+
+运行方式：
+
+```bash
+OKX_API_KEY=xxx \
+OKX_SECRET_KEY=xxx \
+OKX_PASSPHRASE=xxx \
+npm run analyze:okx -- \
+  6JNX28ebGucLPGAxrh5AxoUgg63HryRThng1e3JJpump \
+  6iA73gWCKkLWKbVr8rgibV57MMRxzsaqS9cWpgKBpump
+```
+
 ## 注意事项
 
 - 免费 API 有速率限制
