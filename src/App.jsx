@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getTopHolders, getEarlyBuyers, findCommonAddresses } from './api';
 
 function App() {
@@ -8,13 +8,7 @@ function App() {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState(null);
   const [error, setError] = useState('');
-  const [time, setTime] = useState(new Date());
   const [copied, setCopied] = useState(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -25,11 +19,11 @@ function App() {
     try {
       const tokenAddresses = addresses
         .split('\n')
-        .map(addr => addr.trim())
-        .filter(addr => addr.length > 0);
+        .map((addr) => addr.trim())
+        .filter((addr) => addr.length > 0);
 
       if (tokenAddresses.length < 2) {
-        throw new Error('ERROR: MINIMUM 2 ADDRESSES REQUIRED');
+        throw new Error('请至少输入 2 个代币地址');
       }
 
       const allData = [];
@@ -37,12 +31,14 @@ function App() {
 
       for (let i = 0; i < tokenAddresses.length; i++) {
         setProgress(((i + 1) / totalSteps) * 100);
+
         let data;
         if (mode === 'holders') {
           data = await getTopHolders(tokenAddresses[i], 200);
         } else {
           data = await getEarlyBuyers(tokenAddresses[i], 100);
         }
+
         allData.push(data);
       }
 
@@ -52,201 +48,169 @@ function App() {
         tokenCount: tokenAddresses.length,
         commonCount: common.length,
         commonAddresses: common,
-        percentage: ((common.length / (allData[0]?.length || 1)) * 100).toFixed(1)
+        percentage: ((common.length / (allData[0]?.length || 1)) * 100).toFixed(1),
       });
     } catch (err) {
-      setError(err.message || 'SYSTEM ERROR');
+      setError(err.message || '分析失败，请稍后重试');
     } finally {
       setLoading(false);
       setProgress(0);
     }
   };
 
-  const copyToClipboard = (text, idx) => {
-    navigator.clipboard.writeText(text);
-    setCopied(idx);
-    setTimeout(() => setCopied(null), 1000);
-  };
-
-  const formatTime = (date) => {
-    return date.toISOString().replace('T', ' ').slice(0, 19) + ' UTC';
+  const copyToClipboard = async (text, idx) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(idx);
+      setTimeout(() => setCopied(null), 1200);
+    } catch {
+      setError('复制失败，请手动复制地址');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] text-[#00FF41] font-mono p-4 relative overflow-hidden">
-      {/* Scanline effect */}
-      <div className="fixed inset-0 pointer-events-none opacity-10">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#00FF41] to-transparent animate-scan"></div>
-      </div>
+    <div className="min-h-screen bg-white text-slate-900">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-4 sm:px-6">
+          <h1 className="text-lg font-semibold tracking-tight">SOL Tracker</h1>
 
-      {/* CRT glow */}
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,rgba(0,255,65,0.1)_0%,transparent_70%)]"></div>
-
-      <div className="max-w-5xl mx-auto relative z-10">
-        {/* Header */}
-        <div className="border border-[#1A1A1A] p-4 mb-4 bg-black/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-xl font-bold tracking-wider">[SOL_TRACKER]</div>
-              <div className="text-xs text-[#666666]">{formatTime(time)}</div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setMode('holders')}
-                className={`px-4 py-1 border transition-all ${
-                  mode === 'holders'
-                    ? 'border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41]'
-                    : 'border-[#1A1A1A] text-[#666666] hover:border-[#00FF41] hover:text-[#00FF41]'
-                }`}
-              >
-                [HOLDERS]
-              </button>
-              <button
-                onClick={() => setMode('buyers')}
-                className={`px-4 py-1 border transition-all ${
-                  mode === 'buyers'
-                    ? 'border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41]'
-                    : 'border-[#1A1A1A] text-[#666666] hover:border-[#00FF41] hover:text-[#00FF41]'
-                }`}
-              >
-                [BUYERS]
-              </button>
-            </div>
+          <div className="rounded-full border border-slate-200 bg-slate-50 p-1">
+            <button
+              onClick={() => setMode('holders')}
+              className={`rounded-full px-4 py-1.5 text-sm transition ${
+                mode === 'holders'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              持有者
+            </button>
+            <button
+              onClick={() => setMode('buyers')}
+              className={`rounded-full px-4 py-1.5 text-sm transition ${
+                mode === 'buyers'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              买家
+            </button>
           </div>
         </div>
+      </header>
 
+      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
         {!results ? (
-          // Input View
-          <div className="border border-[#1A1A1A] p-8 bg-black/50">
-            <div className="mb-6">
-              <div className="text-sm text-[#666666] mb-2">&gt; INPUT_ADDRESSES</div>
-              <div className="relative">
-                <textarea
-                  value={addresses}
-                  onChange={(e) => setAddresses(e.target.value)}
-                  placeholder="PASTE_TOKEN_ADDRESSES_HERE&#10;ONE_PER_LINE"
-                  className="w-full h-64 bg-black border border-[#1A1A1A] p-4 text-[#00FF41] focus:border-[#00FF41] focus:outline-none focus:shadow-[0_0_10px_rgba(0,255,65,0.3)] resize-none placeholder-[#333333] transition-all"
-                  disabled={loading}
-                />
-                {!loading && addresses && (
-                  <div className="absolute bottom-4 right-4 w-2 h-4 bg-[#00FF41] animate-pulse"></div>
-                )}
-              </div>
+          <section className="mx-auto max-w-3xl">
+            <div className="mb-4 text-center">
+              <h2 className="text-2xl font-semibold tracking-tight">输入代币地址并开始分析</h2>
+              <p className="mt-2 text-sm text-slate-500">每行一个地址，至少输入两个</p>
             </div>
 
-            <button
-              onClick={handleAnalyze}
-              disabled={loading || !addresses.trim()}
-              className="w-full py-3 border border-[#00FF41] bg-[#00FF41]/10 text-[#00FF41] hover:bg-[#00FF41]/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-bold tracking-wider"
-            >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <span>[ANALYZING]</span>
-                  <span className="inline-block w-32 h-2 border border-[#00FF41] relative overflow-hidden">
-                    <div 
-                      className="absolute left-0 top-0 h-full bg-[#00FF41]"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </span>
-                  <span>{Math.round(progress)}%</span>
-                </div>
-              ) : (
-                '[ANALYZE >>]'
-              )}
-            </button>
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <textarea
+                value={addresses}
+                onChange={(e) => setAddresses(e.target.value)}
+                placeholder="请输入代币地址（每行一个）"
+                className="h-72 w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 font-mono text-sm text-slate-900 outline-none transition focus:border-slate-400"
+                disabled={loading}
+              />
 
-            {error && (
-              <div className="mt-4 border-2 border-[#FF0055] p-4 bg-[#FF0055]/10">
-                <div className="text-[#FF0055] font-bold">&gt;&gt; {error}</div>
-              </div>
-            )}
-          </div>
+              <button
+                onClick={handleAnalyze}
+                disabled={loading || !addresses.trim()}
+                className="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                {loading ? '分析中...' : '开始分析'}
+              </button>
+
+              {loading && (
+                <div className="mt-3">
+                  <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                    <span>进度</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100">
+                    <div
+                      className="h-2 rounded-full bg-slate-900 transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {error && (
+                <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+                  {error}
+                </div>
+              )}
+            </div>
+          </section>
         ) : (
-          // Results View
-          <div className="border border-[#1A1A1A] p-8 bg-black/50">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1A1A1A]">
+          <section className="mx-auto max-w-5xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold tracking-tight">分析结果</h2>
               <button
                 onClick={() => setResults(null)}
-                className="text-[#00FF41] hover:text-[#FF0055] transition-colors"
+                className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-700 transition hover:bg-slate-50"
               >
-                [&lt;&lt; BACK]
+                返回
               </button>
-              <div className="flex gap-6 text-sm">
-                <div>
-                  <span className="text-[#666666]">TOKENS:</span>
-                  <span className="ml-2 text-[#00FF41]">{results.tokenCount}</span>
-                </div>
-                <div>
-                  <span className="text-[#666666]">COMMON:</span>
-                  <span className="ml-2 text-[#00FF41]">{results.commonCount}</span>
-                </div>
-                <div>
-                  <span className="text-[#666666]">OVERLAP:</span>
-                  <span className="ml-2 text-[#00FF41]">{results.percentage}%</span>
-                </div>
+            </div>
+
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="text-sm text-slate-500">代币数</div>
+                <div className="mt-1 text-2xl font-semibold">{results.tokenCount}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="text-sm text-slate-500">共同地址</div>
+                <div className="mt-1 text-2xl font-semibold">{results.commonCount}</div>
+              </div>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="text-sm text-slate-500">重叠率</div>
+                <div className="mt-1 text-2xl font-semibold">{results.percentage}%</div>
               </div>
             </div>
 
-            <div className="text-sm text-[#666666] mb-2">&gt; RESULTS:</div>
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-4 py-3 text-sm font-medium">
+                地址列表（{results.commonAddresses.length}）
+              </div>
 
-            {results.commonAddresses.length > 0 ? (
-              <div className="space-y-1">
-                {results.commonAddresses.map((addr, idx) => (
-                  <div
-                    key={idx}
-                    className="group flex items-center justify-between p-3 border border-[#1A1A1A] hover:border-[#00FF41] hover:bg-[#00FF41]/5 transition-all cursor-pointer"
-                    onClick={() => copyToClipboard(addr, idx)}
-                  >
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <span className="text-[#666666] w-12">
-                        {String(idx + 1).padStart(3, '0')}
-                      </span>
-                      <span className="text-[#00FF41] truncate">
-                        {addr}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {copied === idx && (
-                        <span className="text-[#FF0055] animate-pulse">[COPIED]</span>
-                      )}
+              {results.commonAddresses.length > 0 ? (
+                <div className="max-h-[520px] overflow-auto">
+                  {results.commonAddresses.map((addr, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                    >
+                      <div className="w-9 text-sm text-slate-400">{idx + 1}</div>
+                      <div className="min-w-0 flex-1 truncate font-mono text-sm text-slate-800">{addr}</div>
+                      <button
+                        onClick={() => copyToClipboard(addr, idx)}
+                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-700 transition hover:bg-slate-50"
+                      >
+                        {copied === idx ? '已复制' : '复制'}
+                      </button>
                       <a
                         href={`https://solscan.io/account/${addr}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#666666] hover:text-[#00FF41] transition-colors"
-                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-md border border-slate-200 px-2.5 py-1 text-xs text-slate-700 transition hover:bg-slate-50"
                       >
-                        [VIEW]
+                        外链
                       </a>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="border-2 border-[#FF0055] p-8 text-center">
-                <div className="text-[#FF0055] text-xl">[NO_COMMON_ADDRESSES_FOUND]</div>
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="px-4 py-10 text-center text-sm text-slate-500">没有找到共同地址</div>
+              )}
+            </div>
+          </section>
         )}
-
-        {/* Footer */}
-        <div className="mt-4 border border-[#1A1A1A] p-2 bg-black/50 flex items-center justify-between text-xs text-[#666666]">
-          <div>SYSTEM_OK</div>
-          <div>POWERED_BY_HELIUS</div>
-          <div>LATENCY: 23ms</div>
-        </div>
-      </div>
-
-      <style jsx>{`
-        @keyframes scan {
-          0% { transform: translateY(-100%); }
-          100% { transform: translateY(100%); }
-        }
-        .animate-scan {
-          animation: scan 8s linear infinite;
-        }
-      `}</style>
+      </main>
     </div>
   );
 }
